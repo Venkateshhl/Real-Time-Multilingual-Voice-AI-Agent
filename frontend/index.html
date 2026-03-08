@@ -170,11 +170,10 @@
 
             connect() {
                 try {
-                    // For local development, use localhost
-                    // For production, use the deployed URL
-                    const wsUrl = window.location.protocol === 'https:'
-                        ? `wss://${window.location.host}/ws`
-                        : `ws://localhost:8000/ws`;
+                    // Use same host as page; backend is mounted at /api
+                    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                    const host = window.location.host || 'localhost:8000';
+                    const wsUrl = `${protocol}//${host}/api/ws`;
 
                     this.ws = new WebSocket(wsUrl);
 
