@@ -1,0 +1,8 @@
+fastapi
+uvicorn[standard]
+redis
+openai
+websockets
+langdetect
+pydantic
+asyncio
