@@ -8,7 +8,8 @@ def text_to_speech(text, language):
         'ta': 'alloy'
     }
     voice = voice_map.get(language, 'alloy')
-    response = openai.Audio.speech.create(
+    client = openai.OpenAI()  # Updated for openai>=1.0.0
+    response = client.audio.speech.create(
         model="tts-1",
         voice=voice,
         input=text

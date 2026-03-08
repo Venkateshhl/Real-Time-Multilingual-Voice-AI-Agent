@@ -1,4 +1,4 @@
-# Mock appointment database
+pip install openai==0.28  # Or update code to use new APIpip install openai==0.28  # Or update code to use new API# Mock appointment database
 appointments = []
 
 def check_availability(doctor, date):

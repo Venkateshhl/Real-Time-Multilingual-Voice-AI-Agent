@@ -10,12 +10,13 @@ def process_request(user_text, language, context):
         context=json.dumps(context)
     )
     try:
-        response = openai.ChatCompletion.create(
+        client = openai.OpenAI()  # Updated for openai>=1.0.0
+        response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[{"role": "system", "content": prompt}],
             max_tokens=200
         )
-        content = response['choices'][0]['message']['content']
+        content = response.choices[0].message.content
         # Try to parse as JSON
         result = json.loads(content)
         # Call the appropriate tool
