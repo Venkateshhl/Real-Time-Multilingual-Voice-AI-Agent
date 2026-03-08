@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice AI Agent Demo</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .status {
+            text-align: center;
+            margin: 20px 0;
+            padding: 10px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .connected { background: rgba(46, 204, 113, 0.8); }
+        .disconnected { background: rgba(231, 76, 60, 0.8); }
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+        }
+        .record-btn {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            color: white;
+        }
+        .record-btn.recording {
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+            animation: pulse 1s infinite;
+        }
+        .stop-btn { background: #e74c3c; color: white; }
+        .connect-btn { background: #27ae60; color: white; }
+        .disconnect-btn { background: #e67e22; color: white; }
+        button:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
+        button:disabled { opacity: 0.6; cursor: not-allowed; }
+        .conversation {
+            margin: 20px 0;
+            max-height: 300px;
+            overflow-y: auto;
+            background: rgba(0,0,0,0.2);
+            padding: 15px;
+            border-radius: 8px;
+        }
+        .message {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 8px;
+        }
+        .user { background: rgba(52, 152, 219, 0.8); margin-left: 20%; }
+        .agent { background: rgba(155, 89, 182, 0.8); margin-right: 20%; }
+        .info { background: rgba(149, 165, 166, 0.8); text-align: center; font-style: italic; }
+        .language-indicator {
+            text-align: center;
+            margin: 10px 0;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        .demo-text {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .demo-text h3 { margin-top: 0; }
+        .demo-text ul { margin: 10px 0; }
+        .demo-text li { margin: 5px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Voice AI Agent</h1>
+        <p style="text-align: center; font-size: 1.2em; margin-bottom: 30px;">
+            Real-Time Multilingual Clinical Appointment Booking
+        </p>
+
+        <div id="status" class="status disconnected">
+            Disconnected - Click Connect to start
+        </div>
+
+        <div class="language-indicator" id="languageIndicator">
+            🌍 Language: Detecting...
+        </div>
+
+        <div class="controls">
+            <button id="connectBtn" class="connect-btn">Connect</button>
+            <button id="disconnectBtn" class="disconnect-btn" disabled>Disconnect</button>
+            <button id="recordBtn" class="record-btn" disabled>🎤 Start Recording</button>
+            <button id="stopBtn" class="stop-btn" disabled>⏹️ Stop & Send</button>
+        </div>
+
+        <div class="conversation" id="conversation">
+            <div class="message info">
+                Welcome to the Voice AI Agent! Connect to start a conversation.
+            </div>
+        </div>
+
+        <div class="demo-text">
+            <h3>💡 Try These Commands:</h3>
+            <ul>
+                <li><strong>English:</strong> "Book appointment with cardiologist tomorrow"</li>
+                <li><strong>Hindi:</strong> "मुझे कल डॉक्टर से मिलना है"</li>
+                <li><strong>Tamil:</strong> "நாளை மருத்துவரை பார்க்க வேண்டும்"</li>
+                <li><strong>Other:</strong> "Cancel my appointment", "Reschedule to Friday"</li>
+            </ul>
+            <p><em>Note: Make sure to allow microphone access when prompted.</em></p>
+        </div>
+    </div>
+
+    <script>
+        class VoiceAIAgent {
+            constructor() {
+                this.ws = null;
+                this.mediaRecorder = null;
+                this.audioChunks = [];
+                this.isRecording = false;
+
+                this.connectBtn = document.getElementById('connectBtn');
+                this.disconnectBtn = document.getElementById('disconnectBtn');
+                this.recordBtn = document.getElementById('recordBtn');
+                this.stopBtn = document.getElementById('stopBtn');
+                this.status = document.getElementById('status');
+                this.conversation = document.getElementById('conversation');
+                this.languageIndicator = document.getElementById('languageIndicator');
+
+                this.bindEvents();
+            }
+
+            bindEvents() {
+                this.connectBtn.addEventListener('click', () => this.connect());
+                this.disconnectBtn.addEventListener('click', () => this.disconnect());
+                this.recordBtn.addEventListener('click', () => this.startRecording());
+                this.stopBtn.addEventListener('click', () => this.stopRecording());
+            }
+
+            connect() {
+                try {
+                    // For local development, use localhost
+                    // For production, use the deployed URL
+                    const wsUrl = window.location.protocol === 'https:'
+                        ? `wss://${window.location.host}/ws`
+                        : `ws://localhost:8000/ws`;
+
+                    this.ws = new WebSocket(wsUrl);
+
+                    this.ws.onopen = () => {
+                        this.updateStatus('Connected', 'connected');
+                        this.connectBtn.disabled = true;
+                        this.disconnectBtn.disabled = false;
+                        this.recordBtn.disabled = false;
+                        this.addMessage('System', 'Connected to Voice AI Agent!', 'info');
+                    };
+
+                    this.ws.onmessage = (event) => {
+                        // In a real implementation, this would be audio data
+                        // For demo, we'll simulate text responses
+                        this.addMessage('Agent', 'Audio response received (playback would happen here)', 'agent');
+                    };
+
+                    this.ws.onclose = () => {
+                        this.updateStatus('Disconnected', 'disconnected');
+                        this.connectBtn.disabled = false;
+                        this.disconnectBtn.disabled = true;
+                        this.recordBtn.disabled = true;
+                        this.stopBtn.disabled = true;
+                        this.addMessage('System', 'Disconnected from server', 'info');
+                    };
+
+                    this.ws.onerror = (error) => {
+                        console.error('WebSocket error:', error);
+                        this.addMessage('System', 'Connection error occurred', 'info');
+                    };
+
+                } catch (error) {
+                    console.error('Connection error:', error);
+                    this.addMessage('System', 'Failed to connect to server', 'info');
+                }
+            }
+
+            disconnect() {
+                if (this.ws) {
+                    this.ws.close();
+                }
+                if (this.isRecording) {
+                    this.stopRecording();
+                }
+            }
+
+            async startRecording() {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    this.mediaRecorder = new MediaRecorder(stream);
+                    this.audioChunks = [];
+
+                    this.mediaRecorder.ondataavailable = (event) => {
+                        this.audioChunks.push(event.data);
+                    };
+
+                    this.mediaRecorder.onstop = () => {
+                        const audioBlob = new Blob(this.audioChunks, { type: 'audio/wav' });
+                        this.sendAudio(audioBlob);
+                        // Stop all tracks
+                        stream.getTracks().forEach(track => track.stop());
+                    };
+
+                    this.mediaRecorder.start();
+                    this.isRecording = true;
+                    this.recordBtn.disabled = true;
+                    this.stopBtn.disabled = false;
+                    this.recordBtn.classList.add('recording');
+                    this.recordBtn.textContent = '🔴 Recording...';
+                    this.addMessage('System', 'Recording started...', 'info');
+
+                } catch (error) {
+                    console.error('Recording error:', error);
+                    this.addMessage('System', 'Microphone access denied or not available', 'info');
+                }
+            }
+
+            stopRecording() {
+                if (this.mediaRecorder && this.isRecording) {
+                    this.mediaRecorder.stop();
+                    this.isRecording = false;
+                    this.recordBtn.disabled = false;
+                    this.stopBtn.disabled = true;
+                    this.recordBtn.classList.remove('recording');
+                    this.recordBtn.textContent = '🎤 Start Recording';
+                    this.addMessage('System', 'Recording stopped, processing...', 'info');
+                }
+            }
+
+            sendAudio(audioBlob) {
+                if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                    // Convert blob to array buffer and send
+                    audioBlob.arrayBuffer().then(buffer => {
+                        this.ws.send(buffer);
+                        this.addMessage('You', '🎤 Audio sent to agent', 'user');
+                    });
+                } else {
+                    this.addMessage('System', 'Not connected to server', 'info');
+                }
+            }
+
+            updateStatus(message, className) {
+                this.status.textContent = message;
+                this.status.className = `status ${className}`;
+            }
+
+            addMessage(sender, text, type) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${type}`;
+                messageDiv.innerHTML = `<strong>${sender}:</strong> ${text}`;
+                this.conversation.appendChild(messageDiv);
+                this.conversation.scrollTop = this.conversation.scrollHeight;
+            }
+
+            updateLanguage(language) {
+                const languageNames = {
+                    'en': 'English',
+                    'hi': 'Hindi',
+                    'ta': 'Tamil'
+                };
+                this.languageIndicator.textContent = `🌍 Language: ${languageNames[language] || 'Detecting...'}`;
+            }
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new VoiceAIAgent();
+        });
+    </script>
+</body>
+</html>
