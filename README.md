@@ -1,5 +1,9 @@
 # Real-Time Multilingual Voice AI Agent for Clinical Appointment Booking
 
+## Deploy
+
+- **Deploy on Railway**: Create a new Railway project from this GitHub repo at `https://railway.com/new` (select **Deploy from GitHub repo**), then set `OPENAI_API_KEY` in **Variables**.
+
 ## Overview
 
 This project implements a real-time voice AI agent for clinical appointment booking that operates across English, Hindi, and Tamil. The system handles the complete appointment lifecycle through natural voice conversations, maintains contextual memory, and supports both inbound and outbound interactions.
