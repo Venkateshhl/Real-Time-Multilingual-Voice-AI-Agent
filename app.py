@@ -7,6 +7,11 @@ app = FastAPI()
 # Mount static files
 app.mount("/static", StaticFiles(directory="frontend"), name="static")
 
+@app.get("/health")
+async def health():
+    # Railway/Render healthchecks should not depend on external APIs.
+    return {"status": "healthy"}
+
 @app.get("/")
 async def read_root():
     return FileResponse("frontend/index.html")
