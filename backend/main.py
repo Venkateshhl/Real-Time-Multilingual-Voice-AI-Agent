@@ -14,7 +14,23 @@ app = FastAPI()
 
 @app.get("/")
 def health():
-    return {"status": "running"}
+    return {"status": "running", "service": "Real-Time Multilingual Voice AI Agent", "version": "1.0.0"}
+
+@app.get("/health")
+def detailed_health():
+    return {
+        "status": "healthy",
+        "supported_languages": ["en", "hi", "ta"],
+        "max_audio_size": 25 * 1024 * 1024,  # 25MB
+        "session_timeout": 3600,  # 1 hour
+        "features": [
+            "real-time voice processing",
+            "multilingual support",
+            "appointment booking/cancellation",
+            "contextual memory",
+            "conflict resolution"
+        ]
+    }
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
